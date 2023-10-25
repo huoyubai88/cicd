@@ -1,0 +1,41 @@
+name: ZsyAssignment
+on:
+  push:
+    branches:
+      - 'v[0-9]+.[0-9]+'
+  pull_request:
+jobs:
+  build:
+    name: ScanFile
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: ScanCode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          output: 'trivy-results.txt'
+          severity: 'CRITICAL'
+
+      - name: SendMsg
+        if: failure()
+        id: slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: "Scan failed -Zsy"
+          SLACK_MESSAGE: "Failed trivy scan, see uploaded report"
+
+      - name: UploadFile
+        if: failure()
+        uses: MeilCli/slack-upload-file@v3
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_type: 'text'
+          file_path: 'trivy-results.txt'
+          initial_comment: 'Post by Zsy'
