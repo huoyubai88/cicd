@@ -38,4 +38,4 @@ jobs:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           file_type: 'text'
           file_path: 'trivy-results.txt'
-          initial_comment: 'Post by Zsy'
+          initial_comment: 'Post by Zsyabc'
