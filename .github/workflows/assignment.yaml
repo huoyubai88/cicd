@@ -3,39 +3,133 @@ on:
   push:
     branches:
       - 'v[0-9]+.[0-9]+'
-  pull_request:
+
+  # checking the code when pulling if needed
+  # pull_request:   
+
 jobs:
   build:
-    name: ScanFile
-    runs-on: ubuntu-20.04
+    name: Scan_File
+    runs-on: ubuntu-22.04
+    if: contains(github.event.head_commit.message, '#NORUN' ) == false
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: ScanCode
-        uses: aquasecurity/trivy-action@master
+      - name: Scan_Code
+        uses: aquasecurity/trivy-action@master    # check whether the trivy-action@master is working
         with:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'table'
           output: 'trivy-results.txt'
+          exit-code: '1'
+          # security: 'HIGH'
           severity: 'CRITICAL'
 
+      # download the trivy-results.txt if needed
+      # - name: Upload Trivy Report
+      #   if: always()
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: trivy-report
+      #     path: trivy-results.txt
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # login to docker hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      
+      # 
+      # - name: Build Docker image
+      #   run: docker build -t huoyubai88/cicdtest:latest .
+      #   working-directory: .  
+
+      
+      # - name: Push Docker image
+      #   run: docker push huoyubai88/cicdtest:latest
+
+      - name: Build and push Docker image
+        id: bap
+        uses: docker/build-push-action@v5
+        with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: huoyubai88/cicd:${{ github.sha }}
+
+      # - name: Sign Docker image
+      #   run: |
+      #     echo "${{ secrets.PRIVATE_KEY }}" > private_key.pem
+      #     echo "${{ secrets.PUBLIC_KEY }}" > public_key.pem
+      #     docker trust signer add --key private_key.pem  huoyubai88/cicdtest
+      #     export DOCKER_CONTENT_TRUST=1
+      #     docker trust sign huoyubai88/cicdtest:latest
+      #   env:
+      #     DOCKER_CONTENT_TRUST: 1
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.2
+
+      - name: Find data
+        id: docker_meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: docker.io/huoyubai88/cicd:${{ github.sha }}
+          tags: type=sha,format=long
+
+
+      # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+
+      # https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_security_for_kubernetes/3.73/html/operating/verify-image-signatures
+
+      # use cosign for image signature verification
+      - name: cosign image
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "docker.io/huoyubai88/cicd:${{github.sha}}@${DIGEST}"
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          DIGEST: ${{ steps.bap.outputs.digest }}
+
+      # send to slack
       - name: SendMsg
         if: failure()
         id: slack
         uses: rtCamp/action-slack-notify@v2
         env:
+          # SLACK_WEBHOOK: ${{ https://hooks.slack.com/services/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 }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_TITLE: "Scan failed -Zsy"
+          SLACK_TITLE: "Scan failed - Zsy"
           SLACK_MESSAGE: "Failed trivy scan, see uploaded report"
 
       - name: UploadFile
         if: failure()
         uses: MeilCli/slack-upload-file@v3
         with:
+          # slack_token: ${{ xoxb-5065523607364-6032237051040-m5CzjzNYhE0cSKkUAawaEdUQ }} 
           slack_token: ${{ secrets.SLACK_TOKEN }}
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           file_type: 'text'
           file_path: 'trivy-results.txt'
-          initial_comment: 'Post by Zsy'
+          initial_comment: 'Post by Zsyabc'
+
+      - name: Send GitHub Action trigger data to Slack workflow
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: Success
+          SLACK_MESSAGE: |
+            *Name*: ZHANG SHIYI
+            *Matriculation*: A0287264U
+            *Email*: <mailto:e1285210@u.nus.edu|e1285210@u.nus.edu>
+            *Git*: <https://github.com/huoyubai88/cicd.git>
+            *Image*: <https://hub.docker.com/repository/docker/huoyubai88/cicd/general>
