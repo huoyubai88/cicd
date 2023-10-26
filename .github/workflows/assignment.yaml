@@ -19,7 +19,7 @@ jobs:
           ignore-unfixed: true
           format: 'table'
           output: 'trivy-results.txt'
-          severity: 'CRITICAL'
+          severity: 'HIGH'
 
       - name: SendMsg
         if: failure()
@@ -39,3 +39,61 @@ jobs:
           file_type: 'text'
           file_path: 'trivy-results.txt'
           initial_comment: 'Post by Zsyabc'
+
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_PASSWORD }}
+               
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: huoyubai88/cicd:${{ github.sha }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.2
+
+      - id: docker_meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: docker.io/huoyubai88/cicd:${{ github.sha }}
+          tags: type=sha,format=long
+
+
+      # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+      - name: Sign image with a key
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "docker.io/huoyubai88/cicd:${{github.sha}}@${DIGEST}"
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+      
+      - name: Send GitHub Action trigger data to Slack workflow
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MSG: |
+            *Name*: ZHANG SHIYI
+            *Matriculation*: A0287264U
+            *Email*: <mailto:e1285210@u.nus.edu|e1285210@u.nus.edu>
+            *Git*: <https://github.com/huoyubai88/cicd.git>
+            *Image*: <https://hub.docker.com/repository/docker/huoyubai88/cicd/general>
+
+
+
+
+
+      
+                      
