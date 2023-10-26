@@ -24,7 +24,7 @@ jobs:
           format: 'table'
           output: 'trivy-results.txt'
           exit-code: '1'
-          severity: 'CRITICAL'
+          severity: 'HIGH'
 
       # download the trivy-results.txt if needed
       # - name: Upload Trivy Report
