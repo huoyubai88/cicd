@@ -55,6 +55,7 @@ jobs:
             password: ${{ secrets.DOCKERHUB_PASSWORD }}
                
       - name: Build and push
+        id: bap
         uses: docker/build-push-action@v5
         with:
             context: .
@@ -65,7 +66,8 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.2
 
-      - id: docker_meta
+      - name: Find data
+        id: docker_meta
         uses: docker/metadata-action@v4.4.0
         with:
           images: docker.io/huoyubai88/cicd:${{ github.sha }}
@@ -73,13 +75,13 @@ jobs:
 
 
       # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-      - name: Sign image with a key
+      - name: CoSign image
         run: |
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY "docker.io/huoyubai88/cicd:${{github.sha}}@${DIGEST}"
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+          DIGEST: ${{ steps.bap.outputs.digest }}
       
       - name: Send GitHub Action trigger data to Slack workflow
         uses: rtCamp/action-slack-notify@v2
