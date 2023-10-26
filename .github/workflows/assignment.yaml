@@ -107,7 +107,7 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           # SLACK_WEBHOOK: ${{ https://hooks.slack.com/services/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 }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_SUBMISION }}
           SLACK_TITLE: "Scan failed - Zsy"
           SLACK_MESSAGE: "Failed trivy scan, see uploaded report"
 
@@ -125,7 +125,7 @@ jobs:
       - name: Send GitHub Action trigger data to Slack workflow
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_SUBMISION }}
           SLACK_TITLE: Success
           SLACK_MESSAGE: |
             *Name*: ZHANG SHIYI
