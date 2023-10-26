@@ -19,6 +19,7 @@ jobs:
           ignore-unfixed: true
           format: 'table'
           output: 'trivy-results.txt'
+          exit-code: '1'
           severity: 'HIGH'
 
       - name: SendMsg
