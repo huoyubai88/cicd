@@ -87,7 +87,8 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_MSG: |
+          SLACK_TITLE: Success
+          SLACK_MESSAGE: |
             *Name*: ZHANG SHIYI
             *Matriculation*: A0287264U
             *Email*: <mailto:e1285210@u.nus.edu|e1285210@u.nus.edu>
