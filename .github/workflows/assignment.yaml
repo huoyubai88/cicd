@@ -119,7 +119,7 @@ jobs:
           channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           file_type: 'text'
           file_path: 'trivy-results.txt'
-          initial_comment: 'Post by Zsyabc'
+          initial_comment: 'Post by Zsy'
 
       - name: Send GitHub Action trigger data to Slack workflow
         uses: rtCamp/action-slack-notify@v2
